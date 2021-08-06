@@ -27,13 +27,10 @@ const generateRandomItems = () => {
 const LogicforHigherCredits = (items, chanceToReRoll, getSession) => {
     return new Promise(async (resolve, reject) => {
         try {
-            console.log(checkWinCond(items), items)
             if(checkWinCond(items)){
                 const isReRoll = checkReRoll(chanceToReRoll);
-                console.log('isReRoll', isReRoll)
                 if(isReRoll){
                     items = generateRandomItems();
-                    console.log(items)
                     if(checkWinCond(items)) getSession.credits += ((items.block1 + 1)*10 - 1)
                     else getSession.credits += - 1
                 }
@@ -45,7 +42,6 @@ const LogicforHigherCredits = (items, chanceToReRoll, getSession) => {
             const responseObject = {success: 'true', data: getSession, items}
             resolve(responseObject)
         } catch(err) {
-            console.log(err)
             reject(err)
         }
     })
@@ -57,7 +53,7 @@ module.exports = {
             const sessionId = v4();
             const session = {
                 sessionId: sessionId,
-                credits: 100,
+                credits: 10,
                 state: 'start'
             };
             const storeSession = await RedisService.set(`sessionId:${sessionId}`, JSON.stringify(session))
@@ -79,7 +75,6 @@ module.exports = {
             let items = {block1: 0, block2: 0, block3: 0}
             if(getSession && getSession.credits > 0){
                 const credits = getSession.credits;
-                console.log('session credits', credits)
                 let response;
                 items = generateRandomItems();
                 getSession.state = 'play'
@@ -100,6 +95,7 @@ module.exports = {
                 if(response) res.status(200).json(response)
                 else throw new Error('Some Error Occured while rolling the machine. Please Try Again!')
             }
+            else throw new Error('Please pass a valid session id!')
         } catch(e){
             res.status(200).json({
                 success: false,
@@ -111,17 +107,20 @@ module.exports = {
     endSession: async (req, res, next) => {
         try{
             let getSession = await RedisService.get(`sessionId:${req.params.id}`)
-            if(getSession.state === 'end') throw new Error(`You don't have any existing session, Please start the session!`)
-            const earnedCredits = getSession.credits
-            getSession.credits = 0
-            getSession.state = 'end'
-            const storeSession = await RedisService.set(`sessionId:${req.params.id}`, JSON.stringify(getSession))
-            if(storeSession){
-                res.status(200).json({
-                    success: true,
-                    earnedCredits 
-                })
+            if(getSession) {
+                if(getSession.state === 'end') throw new Error(`You don't have any existing session, Please start the session!`)
+                const earnedCredits = getSession.credits
+                getSession.credits = 0
+                getSession.state = 'end'
+                const storeSession = await RedisService.set(`sessionId:${req.params.id}`, JSON.stringify(getSession))
+                if(storeSession){
+                    res.status(200).json({
+                        success: true,
+                        earnedCredits 
+                    })
+                }
             }
+            else throw new Error('Please pass a valid session id!')
         } catch(e) {
             res.status(200).json({
                 success: false,
