@@ -1,0 +1,20 @@
+{
+  "plugins": [
+    "dynamic-import-node",
+    [
+      "module-resolver",
+      {
+        "root": ["./"],
+        "alias": {
+          "@controllers": "./src/controllers",
+          "@middlewares": "./src/middlewares",
+          "@routes": "./src/routes",
+          "@socketio": "./src/socketio",
+          "@shared": "promex-shared-library",
+          "@mongo": "promex-shared-library/lib-mongodb/src"
+        }
+      }
+    ]
+  ],
+  "presets": ["@babel/preset-env"]
+}
